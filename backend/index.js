@@ -1,30 +1,21 @@
 const express = require('express');
-const { ApolloServer } = require('apollo-server-express');
 const cors = require('cors');
-const multer = require('multer');
-const { exec } = require('child_process');
-const typeDefs = require('./graphql/schema');
-const resolvers = require('./graphql/resolvers');
-const connectDB = require('./config/db');
-
+const mongoose = require('mongoose');
 require('dotenv').config();
-connectDB();
+
+const connectDB = require('./config/db');
+const ocrRoutes = require('./routes/ocrRoutes'); // Import OCR routes
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+
 app.use(cors());
 app.use(express.json());
 
-const upload = multer({ dest: 'uploads/' });
+// Connect to MongoDB
+connectDB();
 
-app.post('/process', upload.single('image'), (req, res) => {
-  exec(`python3 scripts/ocr_processor.py ${req.file.path}`, (error, stdout) => {
-    if (error) return res.status(500).send({ error: 'OCR Failed' });
-    res.json(JSON.parse(stdout));
-  });
-});
+// Use OCR routes
+app.use('/api', ocrRoutes);
 
-const server = new ApolloServer({ typeDefs, resolvers });
-server.start().then(() => {
-  server.applyMiddleware({ app });
-  app.listen(5000, () => console.log('Server running on port 5000'));
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
